@@ -95,25 +95,45 @@ button.secondary {
 #message.ok { color: var(--ok); }
 #message.error { color: var(--error); }
 
+/* ---------- disk map ---------- */
 #disk {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
   gap: 6px;
 }
 
 .block {
-  height: 42px;
+  height: 54px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 2px;
   border-radius: 6px;
   background: var(--free);
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: 0.85rem;
+  line-height: 1.1;
   border: 2px solid transparent;
+  transition: transform 0.12s;
 }
+.block:hover { transform: scale(1.06); }
 .block.used { color: #fff; font-weight: 600; }
 .block.index { border-color: var(--text); }
+.block small { font-size: 0.65rem; font-weight: 500; opacity: 0.92; }
+
+.key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 14px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.key .swatch { display: inline-block; }
+.swatch.free { background: var(--free); border: 1px solid var(--border); }
+.swatch.used { background: var(--accent); }
+.swatch.idx { background: var(--accent); outline: 2px solid var(--text); outline-offset: -2px; }
 
 #legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .chip {
@@ -126,6 +146,20 @@ button.secondary {
 
 #stats { color: var(--muted); font-size: 0.9rem; margin: 12px 0 0; }
 
+/* ---------- file diagrams ---------- */
+.diagram {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.diagram:last-child { margin-bottom: 0; }
+.diagram h3 { margin: 0 0 8px; font-size: 0.95rem; }
+.diagram h3 span { color: var(--muted); font-weight: 400; }
+.diagram svg { display: block; max-width: 100%; height: auto; color: var(--text); }
+.diagram .caption { margin: 8px 0 0; font-size: 0.82rem; color: var(--muted); }
+
+/* ---------- table ---------- */
 table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 th, td {
   text-align: left;

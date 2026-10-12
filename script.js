@@ -7,6 +7,10 @@ const state = {
 
 const $ = (id) => document.getElementById(id);
 
+const esc = (s) =>
+  String(s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
 /* ---------- helpers ---------- */
 
 function freeList() {
@@ -134,6 +138,7 @@ function deleteFile(name) {
 
 function render() {
   renderDisk();
+  renderDiagrams();
   renderFiles();
   renderStats();
 }
@@ -145,7 +150,10 @@ function renderDisk() {
   state.blocks.forEach((owner, i) => {
     const cell = document.createElement("div");
     cell.className = "block";
-    cell.textContent = i;
+
+    const num = document.createElement("span");
+    num.textContent = i;
+    cell.appendChild(num);
 
     if (owner === null) {
       cell.title = `Block ${i}: free`;
@@ -154,13 +162,19 @@ function renderDisk() {
       cell.classList.add("used");
       cell.style.background = file.color;
       let tip = `Block ${i}: ${owner}`;
+
+      const sub = document.createElement("small");
       if (file.indexBlock === i) {
         cell.classList.add("index");
+        sub.textContent = "INDEX";
         tip += " (index block)";
-      }
-      if (file.next && file.next[i] !== undefined) {
+      } else if (file.next && file.next[i] !== undefined) {
+        sub.textContent = file.next[i] === null ? "→ NULL" : `→ ${file.next[i]}`;
         tip += file.next[i] === null ? " → NULL" : ` → ${file.next[i]}`;
+      } else {
+        sub.textContent = owner.length > 6 ? owner.slice(0, 5) + "…" : owner;
       }
+      cell.appendChild(sub);
       cell.title = tip;
     }
     disk.appendChild(cell);
@@ -178,6 +192,147 @@ function renderDisk() {
     legend.appendChild(chip);
   });
 }
+
+/* ---------- file diagrams (SVG) ---------- */
+
+let svgCounter = 0;
+
+function svgBox(x, y, w, h, label, fill, o = {}) {
+  const stroke = o.stroke ? `stroke="${o.stroke}" stroke-width="${o.sw || 1.5}"` : "";
+  const dash = o.dash ? 'stroke-dasharray="4 3"' : "";
+  const textFill = o.text || "#fff";
+  return (
+    `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="${fill}" ${stroke} ${dash}/>` +
+    `<text x="${x + w / 2}" y="${y + h / 2}" text-anchor="middle" dominant-baseline="central" ` +
+    `fill="${textFill}" font-size="13" font-weight="600">${label}</text>`
+  );
+}
+
+function diagramContiguous(file) {
+  const bw = 40, bh = 36, gap = 4, perRow = 16, pad = 8;
+  const n = file.blocks.length;
+  const cols = Math.min(perRow, n);
+  const rows = Math.ceil(n / perRow);
+  const W = pad * 2 + cols * bw + (cols - 1) * gap;
+  const H = pad * 2 + rows * bh + (rows - 1) * gap;
+
+  let body = "";
+  file.blocks.forEach((b, i) => {
+    const x = pad + (i % perRow) * (bw + gap);
+    const y = pad + Math.floor(i / perRow) * (bh + gap);
+    body += svgBox(x, y, bw, bh, b, file.color);
+  });
+  return { W, H, body, defs: "" };
+}
+
+function diagramLinked(file, id) {
+  const bw = 46, bh = 38, gx = 34, gy = 46, perRow = 8, pad = 10, top = 20;
+  const n = file.blocks.length;
+  const total = n + 1; // the extra node is NULL
+  const cols = Math.min(perRow, total);
+  const rows = Math.ceil(total / perRow);
+  const W = pad * 2 + cols * bw + (cols - 1) * gx;
+  const H = top + rows * bh + (rows - 1) * gy + pad;
+
+  const pos = (i) => ({
+    x: pad + (i % perRow) * (bw + gx),
+    y: top + Math.floor(i / perRow) * (bh + gy),
+  });
+
+  const defs =
+    `<defs><marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" ` +
+    `markerWidth="7" markerHeight="7" orient="auto-start-reverse">` +
+    `<path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>`;
+
+  let body = "";
+  const p0 = pos(0);
+  body += `<text x="${p0.x + bw / 2}" y="${p0.y - 7}" text-anchor="middle" ` +
+          `fill="currentColor" font-size="11" opacity="0.7">start</text>`;
+
+  for (let i = 0; i < total; i++) {
+    const p = pos(i);
+    if (i < n) {
+      body += svgBox(p.x, p.y, bw, bh, file.blocks[i], file.color);
+    } else {
+      body += svgBox(p.x, p.y, bw, bh, "NULL", "none",
+        { stroke: "currentColor", dash: true, text: "currentColor", sw: 1.2 });
+    }
+    if (i < total - 1) {
+      const q = pos(i + 1);
+      if (q.y === p.y) {
+        body += `<line x1="${p.x + bw + 2}" y1="${p.y + bh / 2}" x2="${q.x - 3}" y2="${q.y + bh / 2}" ` +
+                `stroke="currentColor" stroke-width="1.6" marker-end="url(#${id})"/>`;
+      } else {
+        const midY = p.y + bh + gy / 2;
+        body += `<path d="M${p.x + bw / 2},${p.y + bh + 2} L${p.x + bw / 2},${midY} ` +
+                `L${q.x + bw / 2},${midY} L${q.x + bw / 2},${q.y - 3}" fill="none" ` +
+                `stroke="currentColor" stroke-width="1.6" marker-end="url(#${id})"/>`;
+      }
+    }
+  }
+  return { W, H, body, defs };
+}
+
+function diagramIndexed(file, id) {
+  const bw = 46, bh = 38, gx = 14, pad = 10, top = 10, drop = 62, idxW = 150;
+  const data = file.blocks.filter((b) => b !== file.indexBlock);
+  const n = data.length;
+  const rowW = n * bw + (n - 1) * gx;
+  const W = Math.max(rowW, idxW) + pad * 2;
+  const H = top + bh + drop + bh + pad;
+  const startX = (W - rowW) / 2;
+  const dataY = top + bh + drop;
+
+  const defs =
+    `<defs><marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" ` +
+    `markerWidth="7" markerHeight="7" orient="auto-start-reverse">` +
+    `<path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>`;
+
+  let body = "";
+  data.forEach((b, i) => {
+    const x = startX + i * (bw + gx);
+    body += `<line x1="${W / 2}" y1="${top + bh}" x2="${x + bw / 2}" y2="${dataY - 3}" ` +
+            `stroke="currentColor" stroke-width="1.4" opacity="0.75" marker-end="url(#${id})"/>`;
+  });
+  body += svgBox(W / 2 - idxW / 2, top, idxW, bh, `Index block ${file.indexBlock}`,
+                 file.color, { stroke: "currentColor", sw: 2.5 });
+  data.forEach((b, i) => {
+    body += svgBox(startX + i * (bw + gx), dataY, bw, bh, b, file.color);
+  });
+  return { W, H, body, defs };
+}
+
+function renderDiagrams() {
+  const box = $("diagrams");
+  box.replaceChildren();
+
+  if (state.files.size === 0) {
+    const p = document.createElement("p");
+    p.className = "empty";
+    p.textContent = "Create a file to see its allocation diagram.";
+    box.appendChild(p);
+    return;
+  }
+
+  state.files.forEach((file, name) => {
+    const id = `arrow${++svgCounter}`;
+    let d;
+    if (file.indexBlock !== undefined) d = diagramIndexed(file, id);
+    else if (file.next) d = diagramLinked(file, id);
+    else d = diagramContiguous(file);
+
+    const card = document.createElement("div");
+    card.className = "diagram";
+    card.innerHTML =
+      `<h3>${esc(name)} <span>· ${esc(state.method)} allocation</span></h3>` +
+      `<svg viewBox="0 0 ${d.W} ${d.H}" width="${d.W}" xmlns="http://www.w3.org/2000/svg" ` +
+      `role="img" aria-label="Allocation diagram for ${esc(name)}">${d.defs}${d.body}</svg>` +
+      `<p class="caption">${esc(file.detail)}</p>`;
+    box.appendChild(card);
+  });
+}
+
+/* ---------- files table & stats ---------- */
 
 function renderFiles() {
   const body = $("files");

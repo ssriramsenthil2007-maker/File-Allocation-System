@@ -40,8 +40,19 @@
     <section class="panel">
       <h2>Disk map</h2>
       <div id="disk"></div>
+      <div class="key">
+        <span class="chip"><span class="swatch free"></span>Free block</span>
+        <span class="chip"><span class="swatch used"></span>Used block</span>
+        <span class="chip"><span class="swatch idx"></span>Index block (indexed mode)</span>
+        <span class="chip">→n = pointer to next block (linked mode)</span>
+      </div>
       <div id="legend"></div>
       <p id="stats"></p>
+    </section>
+
+    <section class="panel">
+      <h2>File diagrams</h2>
+      <div id="diagrams"></div>
     </section>
 
     <section class="panel">
