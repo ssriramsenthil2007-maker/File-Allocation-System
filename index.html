@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Custom File Allocation System</title>
+  <link rel="stylesheet" href="landing.css">
+</head>
+<body>
+
+  <section class="hero">
+    <h1>Custom File Allocation System</h1>
+    <p class="lead">
+      Explore how an operating system stores files on disk. Create and delete
+      files, watch the disk map change, and compare contiguous, linked and
+      indexed allocation side by side.
+    </p>
+    <div class="actions">
+      <a href="simulator.html" class="btn primary">Launch simulator</a>
+    </div>
+
+    <div class="demo" id="demo" aria-hidden="true"></div>
+  </section>
+
+  <section id="methods" class="section">
+    <h2>Three ways to allocate disk space</h2>
+    <div class="cards">
+
+      <article class="card">
+        <h3>Contiguous</h3>
+        <p>A file occupies consecutive blocks on the disk.</p>
+        <ul>
+          <li class="pro">Fast sequential and random access</li>
+          <li class="con">External fragmentation</li>
+          <li class="con">Hard to grow a file</li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <h3>Linked</h3>
+        <p>Each block stores a pointer to the next block of the file.</p>
+        <ul>
+          <li class="pro">No external fragmentation</li>
+          <li class="pro">Files grow easily</li>
+          <li class="con">Slow random access</li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <h3>Indexed</h3>
+        <p>One index block holds the addresses of all the file's data blocks.</p>
+        <ul>
+          <li class="pro">Fast random access</li>
+          <li class="pro">No external fragmentation</li>
+          <li class="con">Index block overhead</li>
+        </ul>
+      </article>
+
+    </div>
+  </section>
+
+  <section id="concepts" class="section">
+    <h2>Concepts covered</h2>
+    <div class="chips">
+      <span>File allocation</span>
+      <span>Disk space management</span>
+      <span>Free-space tracking</span>
+      <span>External fragmentation</span>
+      <span>Directory structure</span>
+    </div>
+  </section>
+
+  <footer>
+    <p>SRM Institute of Science and Technology-Ramapuram · Department of CSE CORE</p>
+  </footer>
+
+  <script>
+    /* Small animated disk strip in the hero */
+    (function () {
+      const demo = document.getElementById("demo");
+      const total = 24;
+      const colors = ["#3b6fd8", "#d8793b", "#2f9e6b", "#9b59b6"];
+      const cells = [];
+
+      for (let i = 0; i < total; i++) {
+        const c = document.createElement("div");
+        c.className = "cell";
+        demo.appendChild(c);
+        cells.push(c);
+      }
+
+      let pos = 0, colorIdx = 0;
+      function step() {
+        if (pos >= total) {
+          cells.forEach((c) => { c.style.background = ""; });
+          pos = 0;
+          return;
+        }
+        const size = 2 + Math.floor(Math.random() * 4);
+        const color = colors[colorIdx++ % colors.length];
+        for (let k = 0; k < size && pos < total; k++, pos++) {
+          cells[pos].style.background = color;
+        }
+      }
+
+      step();
+      setInterval(step, 900);
+    })();
+  </script>
+</body>
+</html>

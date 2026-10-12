@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>File Allocation Simulator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <a href="index.html" class="home-link">Home →</a>
+    <h1>Custom File Allocation System</h1>
+
+    <section class="panel row">
+      <label>Method
+        <select id="method">
+          <option value="contiguous">Contiguous</option>
+          <option value="linked">Linked</option>
+          <option value="indexed">Indexed</option>
+        </select>
+      </label>
+      <label>Disk blocks
+        <input id="blocks" type="number" min="8" max="128" value="32">
+      </label>
+      <button id="reset" class="secondary">Reset disk</button>
+    </section>
+
+    <section class="panel row">
+      <label>File name
+        <input id="fname" type="text" placeholder="e.g. report">
+      </label>
+      <label>Size (blocks)
+        <input id="fsize" type="number" min="1" value="4">
+      </label>
+      <button id="create">Create file</button>
+    </section>
+
+    <p id="message" role="status"></p>
+
+    <section class="panel">
+      <h2>Disk map</h2>
+      <div id="disk"></div>
+      <div id="legend"></div>
+      <p id="stats"></p>
+    </section>
+
+    <section class="panel">
+      <h2>Files</h2>
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Blocks used</th><th>Location</th><th></th></tr>
+        </thead>
+        <tbody id="files"></tbody>
+      </table>
+    </section>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
